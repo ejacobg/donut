@@ -4,10 +4,11 @@ import "math"
 
 type Frame interface {
 	// Apply a luminance value to a point in the frame.
-	Set(x, y int, L float64)
+	// If the luminance value was applied, function returns true.
+	Set(x, y int, L float64) bool
 }
 
-type SetFunc func(x, y int, L float64)
+type SetFunc[T any] func(L float64) (T, bool)
 
 // Properties of the torus to be rendered.
 type Torus struct {
@@ -113,9 +114,11 @@ func Render(frame Frame, t Torus, s Scene) {
 			// test against the z-buffer.  larger 1/z means the pixel is
 			// closer to the viewer than what's already plotted.
 			if ooz > (*zbuffer)[xp][yp] {
-				(*zbuffer)[xp][yp] = ooz
 				// Change from original implementation: no longer calculating luminanceIndex.
-				frame.Set(xp, yp, L)
+				if frame.Set(xp, yp, L) {
+					// Only update the buffer if something was plotted.
+					(*zbuffer)[xp][yp] = ooz
+				}
 			}
 		}
 	}
