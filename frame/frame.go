@@ -7,6 +7,8 @@ type Frame interface {
 	Set(x, y int, L float64)
 }
 
+type SetFunc func(x, y int, L float64)
+
 // Properties of the torus to be rendered.
 type Torus struct {
 	// Controls the resolution of the cross-sectional circle.
