@@ -1,7 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
 	"log"
 	"os"
 	"time"
@@ -10,38 +14,48 @@ import (
 	"golang.org/x/term"
 )
 
-const frameDelay = 50 // milliseconds
+var (
+	GIF    = flag.String("gif", "", "Generate a GIF file with the given name")
+	steps  = flag.Int("steps", 200, "Number of frames to generate")
+	delay  = flag.Int("delay", 50, "Delay between frames, in milliseconds")
+	width  = flag.Int("width", 100, "Width of the GIF file, if needed")
+	height = flag.Int("height", 100, "Height of the GIF file, if needed")
+)
 
 func main() {
-	width, height, err := term.GetSize(int(os.Stdin.Fd()))
-	if err != nil {
-		log.Fatalln(err)
-	}
+	flag.Parse()
+	genGIF := GIF != nil && *GIF != ""
 
+	var f frame.Frame
 	var min int
-	if width < height {
-		min = width
+	rect := image.Rect(0, 0, *width, *height)
+	palette := frame.Gray16Palette()
+	g := &gif.GIF{
+		Config: image.Config{ColorModel: palette, Width: *width, Height: *height},
+		BackgroundIndex: 0,
+	}
+	if genGIF {
+		f = &frame.GIF{
+			Image: image.NewPaletted(rect, palette),
+			SF:    frame.SetFunc[color.Color](frame.Gray16SF),
+		}
 	} else {
-		// If we're constrained by height, we subtract 1 because fmt.Println adds an extra line.
-		// If we don't do this, we get artifacts when multiple renders occur.
-		min = height - 1
+		width, height, err := term.GetSize(int(os.Stdin.Fd()))
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		if width < height {
+			min = width
+		} else {
+			// If we're constrained by height, we subtract 1 because fmt.Println adds an extra line.
+			// If we don't do this, we get artifacts when multiple renders occur.
+			min = height - 1
+		}
+
+		f = frame.NewASCII(min, min, frame.ASCIISF)
 	}
 
-	ascii := frame.NewASCII(min, min, nil)
-	// The orginal SetFunc as described in the original implementation.
-	// Assumes L ranges from -sqrt(2) to +sqrt(2).
-	ascii.SF = frame.SetFunc[rune](func(L float64) (rune, bool) {
-		// L ranges from -sqrt(2) to +sqrt(2).  If it's < 0, the surface
-		// is pointing away from us, so we won't bother trying to plot it.
-		if L > 0 {
-			luminanceIndex := int(L * 8)
-			// luminanceIndex is now in the range 0..11 (8*sqrt(2) = 11.3)
-			// now we lookup the character corresponding to the
-			// luminance and plot it in our output:
-			return []rune(".,-~:;=!*#$@")[luminanceIndex], true
-		}
-		return 0, false
-	})
 	torus := frame.DefaultTorus()
 	scene := frame.Scene{
 		Width:  min,
@@ -51,23 +65,40 @@ func main() {
 		LY:     1.0,
 		LZ:     -1.0,
 	}
+	if genGIF {
+		scene.Width, scene.Height = *width, *height
+	}
 	scene.CalculateK1(torus.R1, torus.R2)
 
-	// The number of frames to render in a full cycle.
-	steps := 200
-
 	// How much the angles should change between each step.
+	// Move this inside the Torus struct?
 	startA, startB := 15.0, 25.0
 	stepA, stepB := 0.07, 0.03
 
 	for {
 		var s int
-		for s, torus.A, torus.B = 0, startA, startB; s < steps; s, torus.A, torus.B = s+1, torus.A+stepA, torus.B+stepB {
-			ascii.SetAll(' ') // Should the Render function clear the frame instead of doing it here?
-			frame.Render(ascii, torus, scene)
-			ascii.Print(os.Stdout)
-			fmt.Printf("\033[%dF", min)
-			time.Sleep(frameDelay * time.Millisecond)
+		for s, torus.A, torus.B = 0, startA, startB; s < *steps; s, torus.A, torus.B = s+1, torus.A+stepA, torus.B+stepB {
+			f.Reset() // Should the Render function clear the frame instead of doing it here?
+			frame.Render(f, torus, scene)
+			switch v := f.(type) {
+			case *frame.GIF:
+				g.Image = append(g.Image, v.Image)
+				g.Delay = append(g.Delay, *delay/10)
+				g.Disposal = append(g.Disposal, gif.DisposalBackground)
+				v.Image = image.NewPaletted(rect, palette)
+			case *frame.ASCII:
+				v.Print(os.Stdout)
+				fmt.Printf("\033[%dF", min)
+			}
+			if !genGIF {
+				time.Sleep(time.Duration(*delay) * time.Millisecond)
+			}
+		}
+		if genGIF {
+			break
 		}
 	}
+	file, _ := os.OpenFile(*GIF, os.O_WRONLY|os.O_CREATE, 0600)
+	defer file.Close()
+	gif.EncodeAll(file, g)
 }

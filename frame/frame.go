@@ -1,11 +1,19 @@
 package frame
 
-import "math"
+import (
+	"io"
+	"math"
+)
 
 type Frame interface {
 	// Apply a luminance value to a point in the frame.
 	// If the luminance value was applied, function returns true.
 	Set(x, y int, L float64) bool
+
+	// Return the frame to an initial state.
+	Reset()
+
+	Print(w io.Writer)
 }
 
 type SetFunc[T any] func(L float64) (T, bool)

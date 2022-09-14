@@ -44,6 +44,10 @@ func (a *ASCII) SetAll(r rune) {
 	}
 }
 
+func (a *ASCII) Reset() {
+	a.SetAll(' ')
+}
+
 func (a *ASCII) Resize(width int, height int) {
 	a.frame = makeFrame(width, height)
 }
@@ -52,4 +56,19 @@ func (a *ASCII) Print(w io.Writer) {
 	for i := range a.frame {
 		fmt.Fprintln(w, string(a.frame[i]))
 	}
+}
+
+// The orginal SetFunc as described in the original implementation.
+// Assumes L ranges from -sqrt(2) to +sqrt(2).
+func ASCIISF(L float64) (rune, bool) {
+	// L ranges from -sqrt(2) to +sqrt(2).  If it's < 0, the surface
+	// is pointing away from us, so we won't bother trying to plot it.
+	if L > 0 {
+		luminanceIndex := int(L * 8)
+		// luminanceIndex is now in the range 0..11 (8*sqrt(2) = 11.3)
+		// now we lookup the character corresponding to the
+		// luminance and plot it in our output:
+		return []rune(".,-~:;=!*#$@")[luminanceIndex], true
+	}
+	return 0, false
 }
