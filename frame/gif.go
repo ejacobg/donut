@@ -48,6 +48,12 @@ func Gray16Palette() color.Palette {
 // Assumes L ranges from -sqrt(2) to +sqrt(2).
 func Gray16SF(L float64) (color.Color, bool) {
 	// index ranges from [1, 15]
-	index := int(L * 5) + 8
-	return color.Gray16{1<<index}, true
+	index := int(L*5) + 8
+	return color.Gray16{1 << index}, true
+}
+
+func MonoSF(c color.Color) SetFunc[color.Color] {
+	return func(float64) (color.Color, bool) {
+		return c, true
+	}
 }
