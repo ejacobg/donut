@@ -6,11 +6,11 @@ import (
 )
 
 type Frame interface {
-	// Apply a luminance value to a point in the frame.
+	// Set applies a luminance value to a point in the frame.
 	// If the luminance value was applied, function returns true.
 	Set(x, y int, L float64) bool
 
-	// Return the frame to an initial state.
+	// Reset returns the frame to an initial state.
 	Reset()
 
 	Print(w io.Writer)
@@ -18,7 +18,7 @@ type Frame interface {
 
 type SetFunc[T any] func(L float64) (T, bool)
 
-// Properties of the torus to be rendered.
+// Torus contains properties of the torus to be rendered.
 type Torus struct {
 	// Controls the resolution of the cross-sectional circle.
 	ThetaSpacing float64
@@ -45,7 +45,7 @@ func DefaultTorus() Torus {
 	}
 }
 
-// Locations and properties of the scene.
+// Scene contains locations and properties of the scene.
 type Scene struct {
 	// Dimensions of the viewport.
 	Width, Height int
@@ -60,11 +60,11 @@ type Scene struct {
 	// Distance from camera to torus. Essentially equal to TZ since camera is at origin.
 	K2 float64
 
-	// Light source vector. Technially should be normalized, but up to the implementation.
+	// Light source vector. Technically should be normalized, but up to the implementation.
 	LX, LY, LZ float64
 }
 
-// Optional. Automatically sets K1 such that the given torus stays within the screen.
+// CalculateK1 is optional. Automatically sets K1 such that the given torus stays within the screen.
 func (s *Scene) CalculateK1(R1, R2 float64) {
 	min := s.Width
 	if s.Height < min {
@@ -81,7 +81,7 @@ func newZBuffer(width, height int) *[][]float64 {
 	return &matrix
 }
 
-// Renders the scene onto the frame. Assumes that the frame is sized correctly.
+// Render renders the scene onto the frame. Assumes that the frame is sized correctly.
 func Render(frame Frame, t Torus, s Scene) {
 	cosA, sinA := math.Cos(t.A), math.Sin(t.A)
 	cosB, sinB := math.Cos(t.B), math.Sin(t.B)

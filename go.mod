@@ -1,4 +1,4 @@
-module github.com/quincinia/donut
+module github.com/ejacobg/donut
 
 go 1.19
 

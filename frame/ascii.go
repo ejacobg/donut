@@ -54,11 +54,11 @@ func (a *ASCII) Resize(width int, height int) {
 
 func (a *ASCII) Print(w io.Writer) {
 	for i := range a.frame {
-		fmt.Fprintln(w, string(a.frame[i]))
+		_, _ = fmt.Fprintln(w, string(a.frame[i]))
 	}
 }
 
-// The orginal SetFunc as described in the original implementation.
+// ASCIISF is the original SetFunc as described in the original implementation.
 // Assumes L ranges from -sqrt(2) to +sqrt(2).
 func ASCIISF(L float64) (rune, bool) {
 	// L ranges from -sqrt(2) to +sqrt(2).  If it's < 0, the surface
@@ -66,7 +66,7 @@ func ASCIISF(L float64) (rune, bool) {
 	if L > 0 {
 		luminanceIndex := int(L * 8)
 		// luminanceIndex is now in the range 0..11 (8*sqrt(2) = 11.3)
-		// now we lookup the character corresponding to the
+		// now we look up the character corresponding to the
 		// luminance and plot it in our output:
 		return []rune(".,-~:;=!*#$@")[luminanceIndex], true
 	}

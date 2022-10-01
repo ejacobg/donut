@@ -4,13 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"image"
-	"image/color"
 	"image/gif"
 	"log"
 	"os"
 	"time"
 
-	"github.com/quincinia/donut/frame"
+	"github.com/ejacobg/donut/frame"
 	"golang.org/x/term"
 )
 
@@ -31,13 +30,13 @@ func main() {
 	rect := image.Rect(0, 0, *width, *height)
 	palette := frame.Gray16Palette()
 	g := &gif.GIF{
-		Config: image.Config{ColorModel: palette, Width: *width, Height: *height},
+		Config:          image.Config{ColorModel: palette, Width: *width, Height: *height},
 		BackgroundIndex: 0,
 	}
 	if genGIF {
 		f = &frame.GIF{
 			Image: image.NewPaletted(rect, palette),
-			SF:    frame.SetFunc[color.Color](frame.Gray16SF),
+			SF:    frame.Gray16SF,
 		}
 	} else {
 		width, height, err := term.GetSize(int(os.Stdin.Fd()))
@@ -99,6 +98,8 @@ func main() {
 		}
 	}
 	file, _ := os.OpenFile(*GIF, os.O_WRONLY|os.O_CREATE, 0600)
-	defer file.Close()
-	gif.EncodeAll(file, g)
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+	_ = gif.EncodeAll(file, g)
 }
